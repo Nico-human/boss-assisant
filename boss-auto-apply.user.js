@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Boss直聘自动投递助手
 // @namespace    https://github.com/muyuniao/boss-auto-apply
-// @version      0.1.0
+// @version      0.2.4
 // @description  在 Boss 直聘职位列表页按筛选规则自动批量发起沟通。
 // @author       muyuniao
 // @license      MIT
@@ -25,7 +25,54 @@
   const HISTORY_KEY = `${APP_ID}:history`;
   const PANEL_ID = `${APP_ID}-panel`;
   const STYLE_ID = `${APP_ID}-style`;
-  const VERSION = "0.1.0";
+  const VERSION = "0.2.4";
+
+  // BEGIN GENERATED OUTSOURCING COMPANIES
+  // 来源及维护入口：data/outsourcing-companies.json；运行 npm run sync:outsourcing 更新。
+  // 社区名单快照：2026-11-07，仅用于辅助筛选。
+  const OUTSOURCING_COMPANIES = [
+    {"name":"外企德科","aliases":["外企德科","FESCO Adecco"]},
+    {"name":"中软国际","aliases":["中软国际"]},
+    {"name":"软通动力","aliases":["软通动力"]},
+    {"name":"文思海辉","aliases":["文思海辉"]},
+    {"name":"中电金信","aliases":["中电金信"]},
+    {"name":"博彦科技","aliases":["博彦科技"]},
+    {"name":"法本信息","aliases":["法本信息","法本"]},
+    {"name":"纬创软件","aliases":["纬创软件"]},
+    {"name":"德科信息","aliases":["德科信息"]},
+    {"name":"易思博","aliases":["易思博"]},
+    {"name":"佰钧成","aliases":["佰钧成"]},
+    {"name":"京北方","aliases":["京北方"]},
+    {"name":"信必优","aliases":["信必优"]},
+    {"name":"亿达信息","aliases":["亿达信息","YIDATEC"]},
+    {"name":"汉得信息","aliases":["汉得信息"]},
+    {"name":"赛意信息","aliases":["赛意信息"]},
+    {"name":"长亮科技","aliases":["长亮科技","长亮合度","长亮保泰","长亮核心"]},
+    {"name":"四方精创","aliases":["四方精创"]},
+    {"name":"凯捷咨询","aliases":["凯捷咨询"]},
+    {"name":"印孚瑟斯","aliases":["印孚瑟斯"]},
+    {"name":"微创软件","aliases":["微创软件"]},
+    {"name":"易立德","aliases":["易立德"]},
+    {"name":"易宝软件","aliases":["易宝软件"]},
+    {"name":"海万科技","aliases":["海万科技","海万信息"]},
+    {"name":"申朴信息","aliases":["申朴信息"]},
+    {"name":"绛门科技","aliases":["绛门科技","绛门信息"]},
+    {"name":"诚迈科技","aliases":["诚迈科技"]},
+    {"name":"润和软件","aliases":["润和软件"]},
+    {"name":"慧博云通","aliases":["慧博云通"]},
+    {"name":"汉克时代","aliases":["汉克时代"]},
+    {"name":"新致软件","aliases":["新致软件"]},
+    {"name":"拓保软件","aliases":["拓保软件","深圳拓保"]},
+    {"name":"网新新思","aliases":["网新新思"]},
+    {"name":"得逸信息","aliases":["得逸信息"]},
+    {"name":"联龙博通","aliases":["联龙博通"]},
+    {"name":"开科唯识","aliases":["开科唯识"]},
+    {"name":"睿服科技","aliases":["睿服科技"]},
+    {"name":"维恩贝特","aliases":["维恩贝特"]},
+    {"name":"科锐国际","aliases":["科锐国际"]},
+    {"name":"先进数通","aliases":["先进数通"]},
+  ];
+  // END GENERATED OUTSOURCING COMPANIES
 
   const DEFAULT_CONFIG = {
     autoNextPage: true,
@@ -41,6 +88,12 @@
     delayMaxSec: 10,
     pageDelaySec: 3,
     activeWithinDays: 14,
+    includeJobKeywords: "",
+    excludeJobKeywords: "",
+    includeCompanyKeywords: "",
+    excludeCompanyKeywords: "",
+    minSalary: 0,
+    excludeOutsourcing: false,
     includeDescriptionKeywords: "",
     excludeDescriptionKeywords: "",
   };
@@ -137,6 +190,9 @@
     output.skipHeadhunter = true;
     output.treatChatRemindAsSuccess = true;
 
+    const minSalary = Number(output.minSalary);
+    output.minSalary = Number.isFinite(minSalary) && minSalary > 0 ? minSalary : 0;
+
     return output;
   }
 
@@ -224,7 +280,7 @@
 
   function splitKeywords(value) {
     return String(value || "")
-      .split(/[，,\n;]/)
+      .split(/[，,;；]/)
       .map((item) => normalizeText(item).toLowerCase())
       .filter(Boolean);
   }
@@ -239,25 +295,46 @@
     return textHasAny(text, keywords);
   }
 
-  function fuzzyText(job, detail) {
-    return [
-      job.jobName,
-      job.brandName,
-      job.salaryDesc,
-      job.cityName,
-      job.areaDistrict,
-      job.businessDistrict,
-      job.brandScaleName,
-      job.brandIndustry,
-      Array.isArray(job.jobLabels) ? job.jobLabels.join(" ") : job.jobLabels,
-      Array.isArray(job.skills) ? job.skills.join(" ") : job.skills,
-      detail?.postDescription,
-      detail?.address,
-      detail?.activeTimeDesc,
-    ]
-      .map(normalizeText)
-      .filter(Boolean)
-      .join(" ");
+  function keywordFilter(text, includeValue, excludeValue, label, protectedKeywords = []) {
+    const includes = splitKeywords(includeValue);
+    if (!textHasInclude(text, includes)) {
+      return { ok: false, reason: `${label}不包含指定关键词` };
+    }
+    // 明确命中包含时，以包含为准；跨岗位名称/详情的同词冲突也以包含为准。
+    if (textHasAny(text, includes)) return { ok: true, reason: "" };
+    const excludes = splitKeywords(excludeValue).filter(
+      (keyword) => !protectedKeywords.includes(keyword),
+    );
+    return textHasAny(text, excludes)
+      ? { ok: false, reason: `${label}命中排除关键词` }
+      : { ok: true, reason: "" };
+  }
+
+  function normalizeCompanyName(value) {
+    return normalizeText(value).normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+  }
+
+  function findOutsourcingCompany(names) {
+    return OUTSOURCING_COMPANIES.find((company) =>
+      names.some((name) => company.aliases.some((alias) =>
+        normalizeCompanyName(name).includes(normalizeCompanyName(alias)),
+      )),
+    );
+  }
+
+  // 统一为元/月；多薪不抬高标示的月薪下限，日薪/时薪和面议返回 null。
+  function parseSalaryLowerBound(value) {
+    const text = normalizeText(value).normalize("NFKC").toUpperCase()
+      .replace(/[,，\s]/g, "").replace(/[—–~～至]/g, "-")
+      .replace(/[·•]?\d+薪$/, "");
+    const match = text.match(/^(\d+(?:\.\d+)?)(K|千|万|元)?(?:-(\d+(?:\.\d+)?)(K|千|万|元)?)?(?:(?:人民币)?(?:\/(月|年)|每(月|年)|([月年])薪))?$/);
+    if (!match) return null;
+    const unit = match[2] || match[4] || "元";
+    const factor = (token) => ({ K: 1000, 千: 1000, 万: 10000, 元: 1 })[token];
+    const lower = Number(match[1]) * factor(unit);
+    const upper = match[3] ? Number(match[3]) * factor(match[4] || unit) : lower;
+    if (!Number.isFinite(lower) || !Number.isFinite(upper) || lower <= 0 || upper < lower) return null;
+    return (match[5] || match[6] || match[7]) === "年" ? lower / 12 : lower;
   }
 
   function log(level, message, data) {
@@ -361,6 +438,7 @@
       }
       #${PANEL_ID} .aj-field { display: flex; flex-direction: column; gap: 4px; }
       #${PANEL_ID} .aj-field.aj-wide { grid-column: 1 / -1; }
+      #${PANEL_ID} .aj-hint { grid-column: 1 / -1; margin: 0; color: #64748b; font-size: 11px; }
       #${PANEL_ID} label { color: #334155; font-size: 12px; }
       #${PANEL_ID} input[type="text"],
       #${PANEL_ID} input[type="number"],
@@ -498,9 +576,19 @@
           <div class="aj-checks">
             ${checkboxHtml("onlyOnlineBoss", "仅在线 BOSS")}
             ${checkboxHtml("debug", "调试日志")}
+            ${checkboxHtml("excludeOutsourcing", "排除外包")}
           </div>
+          <p class="aj-hint">多个关键词用半角或全角逗号、分号分隔。</p>
+          ${textAreaHtml("includeJobKeywords", "岗位名称包含关键词")}
+          ${textAreaHtml("excludeJobKeywords", "岗位名称排除关键词")}
           ${textAreaHtml("includeDescriptionKeywords", "岗位详情包含关键词")}
           ${textAreaHtml("excludeDescriptionKeywords", "岗位详情排除关键词")}
+          ${textAreaHtml("includeCompanyKeywords", "公司名称包含关键词")}
+          ${textAreaHtml("excludeCompanyKeywords", "公司名称排除关键词")}
+          <div class="aj-field aj-wide">
+            <label for="${APP_ID}-min-salary">薪资下限</label>
+            <input id="${APP_ID}-min-salary" type="number" name="minSalary" min="0" step="1" placeholder="例如 15；留空或 0 不限制" value="${config.minSalary ? config.minSalary / 1000 : ""}">
+          </div>
         </form>
         <div class="aj-actions">
           <button class="aj-btn aj-btn-primary" data-action="start" ${state.running ? "disabled" : ""}>开始</button>
@@ -517,9 +605,9 @@
 
   function textAreaHtml(name, label) {
     return `
-      <div class="aj-field aj-wide">
-        <label>${label}</label>
-        <textarea name="${name}">${htmlEscape(config[name])}</textarea>
+      <div class="aj-field">
+        <label for="${APP_ID}-${name}">${label}</label>
+        <textarea id="${APP_ID}-${name}" name="${name}">${htmlEscape(config[name])}</textarea>
       </div>
     `;
   }
@@ -534,7 +622,8 @@
       if (field instanceof HTMLInputElement && field.type === "checkbox") {
         next[key] = field.checked;
       } else if (field instanceof HTMLInputElement && field.type === "number") {
-        next[key] = Number(field.value);
+        // 薪资输入为 K/月；存储和比较继续使用元/月，兼容已有配置。
+        next[key] = Number(field.value) * (key === "minSalary" ? 1000 : 1);
       } else if (
         field instanceof HTMLTextAreaElement ||
         field instanceof HTMLInputElement
@@ -579,6 +668,7 @@
     }
 
     if (action === "start") {
+      if (!cachedPanel.querySelector('[data-role="config-form"]').reportValidity()) return;
       saveConfig(collectFormConfig());
       startApply().catch((error) => {
         state.running = false;
@@ -897,6 +987,7 @@
       ]),
       jobName,
       brandName,
+      brandFullName: pickFirstString(raw, ["brandFullName", "companyFullName"]),
       salaryDesc,
       cityName: pickFirstString(raw, ["cityName", "city"]),
       areaDistrict: pickFirstString(raw, [
@@ -1145,14 +1236,52 @@
       }
     }
 
-    const includeDesc = splitKeywords(config.includeDescriptionKeywords);
-    const excludeDesc = splitKeywords(config.excludeDescriptionKeywords);
-    if (includeDesc.length || excludeDesc.length) {
-      const text = fuzzyText(job, detail);
-      if (!textHasInclude(text, includeDesc))
-        return { ok: false, reason: "岗位详情不包含指定关键词" };
-      if (excludeDesc.length && textHasAny(text, excludeDesc))
-        return { ok: false, reason: "岗位详情命中排除关键词" };
+    const description = normalizeText(detail?.postDescription);
+    const jobIncludes = splitKeywords(config.includeJobKeywords);
+    const descIncludes = splitKeywords(config.includeDescriptionKeywords);
+    const protectedKeywords = [
+      ...jobIncludes.filter((keyword) => textHasAny(job.jobName, [keyword])),
+      ...descIncludes.filter((keyword) => textHasAny(description, [keyword])),
+    ];
+    const titleFilter = keywordFilter(job.jobName, config.includeJobKeywords,
+      config.excludeJobKeywords, "岗位名称", protectedKeywords);
+    if (!titleFilter.ok) return titleFilter;
+
+    if (descIncludes.length || splitKeywords(config.excludeDescriptionKeywords).length) {
+      if (!description) return { ok: false, reason: "无法获取岗位详情，不能确认详情关键词" };
+      const descFilter = keywordFilter(description, config.includeDescriptionKeywords,
+        config.excludeDescriptionKeywords, "岗位详情", protectedKeywords);
+      if (!descFilter.ok) return descFilter;
+    }
+
+    const companyNames = [job.brandName, job.brandFullName,
+      detail?.brandName, detail?.brandFullName, detail?.companyName,
+      detail?.companyFullName, detail?.brandComInfo?.brandName,
+      detail?.brandComInfo?.brandFullName].map(normalizeText).filter(Boolean);
+    const companyText = companyNames.map(normalizeCompanyName).join("\n");
+    const includeCompany = splitKeywords(config.includeCompanyKeywords).map(normalizeCompanyName);
+    const excludeCompany = splitKeywords(config.excludeCompanyKeywords).map(normalizeCompanyName);
+    if (!textHasInclude(companyText, includeCompany)) {
+      return { ok: false, reason: "公司名称不包含指定关键词" };
+    }
+    if (!textHasAny(companyText, includeCompany)) {
+      if (textHasAny(companyText, excludeCompany)) {
+        return { ok: false, reason: "公司名称命中排除关键词" };
+      }
+      if (config.excludeOutsourcing) {
+        if (!companyNames.length) return { ok: false, reason: "无法获取公司名称，不能确认是否外包" };
+        const outsourcingCompany = findOutsourcingCompany(companyNames);
+        if (outsourcingCompany) return { ok: false, reason: `外包公司名单命中：${outsourcingCompany.name}` };
+      }
+    }
+
+    if (config.minSalary > 0) {
+      const salary = normalizeText(job.salaryDesc) || detail?.salaryDesc;
+      const lower = parseSalaryLowerBound(salary);
+      if (lower === null) return { ok: false, reason: "无法确认薪资下限" };
+      if (lower < config.minSalary) {
+        return { ok: false, reason: `岗位薪资下限 ${Number((lower / 1000).toFixed(3))} K/月低于设定的 ${config.minSalary / 1000} K/月` };
+      }
     }
 
     if (detail?.friendStatus === 1 || detail?.friendStatus === "1") {
