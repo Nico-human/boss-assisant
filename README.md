@@ -1,6 +1,19 @@
-# Boss 直聘自动投递油猴脚本 (极简轻量版)
+# boss-assisant — Boss 直聘自动投递助手增强版
 
 这是一个专为 Boss 直聘职位列表页设计的 Tampermonkey/篡改猴自动投递脚本。支持按岗位名称、岗位详情、公司名称、薪资下限及外包公司名单筛选。
+
+## 来源与改进
+
+本项目由 **Nico-human** 维护，基于 [muyuniao/boss-auto-apply](https://github.com/muyuniao/boss-auto-apply) 开发，原作者为 **muyuniao**。保留原项目版权声明和提交历史，以 MIT 许可证发布。
+
+增强版主要改进：
+
+- 岗位名称、岗位详情、公司名称分别设置包含和排除关键词，包含规则优先。
+- 薪资下限按 K/月设置，以岗位标价下限进行筛选。
+- 内置外包公司名单，支持一键排除及公司包含关键词优先放行。
+- 配置自动保存，提供筛选测试和浏览器面板验证。
+
+当前版本：**0.3.0**。更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 文件说明
 
@@ -12,12 +25,15 @@
 ## 安装与使用
 
 1. 在浏览器中安装 **Tampermonkey / 篡改猴** 插件。
-2. (推荐方式) 访问 [Greasy Fork 脚本安装页面](https://greasyfork.org/zh-CN/scripts/585275-boss%E7%9B%B4%E8%81%98%E8%87%AA%E5%8A%A8%E6%8A%95%E9%80%92%E5%8A%A9%E6%89%8B) 一键安装/更新。也可以选择复制本仓库的 `boss-auto-apply.user.js` 全部代码并在 Tampermonkey 中手动新建保存。
+2. 点击 [安装增强版脚本](https://raw.githubusercontent.com/Nico-human/boss-assisant/main/boss-auto-apply.user.js)，在 Tampermonkey 中确认安装。若浏览器只显示源码，可复制本仓库的 `boss-auto-apply.user.js` 全部代码并手动新建脚本保存。安装后通过脚本管理器检查更新即可获取 GitHub 上的新版本。
+
+   本增强版目前通过 GitHub 发布。若已安装原版或旧 fork 版本，请先停用旧脚本，避免同时运行；增强版使用独立的脚本名称和 namespace，篡改猴中的旧版配置需重新设置。
+
 3. 自行登录 Boss 直聘网页版。
 4. 打开 Boss 直聘职位页面，例如：
    - `https://www.zhipin.com/web/geek/job` （搜索结果页）
    - `https://www.zhipin.com/web/geek/job-recommend` （推荐职位页）
-5. 页面右下角将自动挂载「Boss 自动投递助手」控制面板。
+5. 页面右下角将自动挂载「Boss 自动投递助手增强版」控制面板。
 6. 根据需要设置关键词、薪资下限及外包过滤，点击 **「开始」** 即可自动开始后台投递。配置会自动保存。
 
 ## 筛选规则
@@ -57,10 +73,10 @@ npm test
 ## 核心设计与特性
 
 - **无感自动保存**：移除了手动的“保存”按钮。面板上对复选框和关键词输入框的任何改动，都会在后台自动、实时、无感地保存，不丢失输入焦点。
-- **固定的安全等待**：
-  - **投递间隔**：自动锁定在 **4秒 至 10秒 之间随机等待**，模拟真人操作规避风控。
+- **固定的投递等待**：
+  - **投递间隔**：自动锁定在 **4秒 至 10秒 之间随机等待**，控制连续请求频率。
   - **翻页等待**：固定锁定为 **3秒** 自动翻页或滚动。
-- **每日防封阈值**：每日最大投递额度固定锁死在 **150 份**。一旦今天投递达到 150 份，脚本会安全终止并提示“已达每日上限”。
+- **每日投递上限**：每日最大投递额度固定锁死在 **150 份**。一旦今天投递达到 150 份，脚本会安全终止并提示“已达每日上限”。
 - **BOSS 活跃度过滤**：固定只投递 **两周内活跃** 的 BOSS。当 BOSS 活跃时间超过 14 天，自动跳过投递并提示 `boss活跃度未达标,已过滤`。
 - **多维筛选机制**：
   - 支持岗位名称、详情、公司名称关键词、薪资下限及外包名单过滤，包含规则优先。
@@ -88,12 +104,14 @@ npm test
 
 ## 开源协议
 
-本项目基于 [MIT License](LICENSE) 协议开源，欢迎自由使用、修改和分发。
+本项目基于 [MIT License](LICENSE) 协议开源，保留 `Copyright (c) 2026 muyuniao`，并为增强版改动添加 `Copyright (c) 2026 Nico-human (modifications)`。单独分发的 `.user.js` 也包含 MIT 许可全文。
 
 ---
 
-## 📸 运行效果截图
+## 📸 原版界面参考
+
+以下截图来自原项目，保留作界面参考；增强版新增筛选项以实际面板为准。
 
 | 页面整体效果 | 操作控制面板 |
 | :---: | :---: |
-| ![页面整体效果](https://github.com/muyuniao/boss-auto-apply/raw/main/images/screenshot1.png) | ![操作控制面板](https://github.com/muyuniao/boss-auto-apply/raw/main/images/screenshot2.png) |
+| ![页面整体效果](images/screenshot1.png) | ![操作控制面板](images/screenshot2.png) |

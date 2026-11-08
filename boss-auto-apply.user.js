@@ -1,10 +1,14 @@
 // ==UserScript==
-// @name         Boss直聘自动投递助手
-// @namespace    https://github.com/muyuniao/boss-auto-apply
-// @version      0.2.4
-// @description  在 Boss 直聘职位列表页按筛选规则自动批量发起沟通。
-// @author       muyuniao
+// @name         Boss直聘自动投递助手增强版（boss-assisant）
+// @namespace    https://github.com/Nico-human/boss-assisant
+// @version      0.3.0
+// @description  基于 muyuniao 原版增强，支持岗位、详情、公司关键词、薪资下限及外包过滤，配置自动保存。
+// @author       muyuniao（原作者）, Nico-human（增强版维护）
 // @license      MIT
+// @homepageURL  https://github.com/Nico-human/boss-assisant
+// @supportURL   https://github.com/Nico-human/boss-assisant/issues
+// @downloadURL  https://raw.githubusercontent.com/Nico-human/boss-assisant/main/boss-auto-apply.user.js
+// @updateURL    https://raw.githubusercontent.com/Nico-human/boss-assisant/main/boss-auto-apply.user.js
 // @match        https://www.zhipin.com/web/geek/job*
 // @match        https://www.zhipin.com/web/geek/jobs*
 // @match        https://www.zhipin.com/web/geek/job-recommend*
@@ -17,6 +21,36 @@
 // @grant        GM_notification
 // ==/UserScript==
 
+/*
+ * boss-assisant — Boss 直聘自动投递助手增强版
+ * 原项目：https://github.com/muyuniao/boss-auto-apply
+ * 增强版：https://github.com/Nico-human/boss-assisant
+ * 改进：岗位、详情、公司关键词及优先级筛选，薪资下限、外包过滤和配置自动保存。
+ *
+ * MIT License
+ *
+ * Copyright (c) 2026 muyuniao
+ * Copyright (c) 2026 Nico-human (modifications)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 (() => {
   "use strict";
 
@@ -25,7 +59,7 @@
   const HISTORY_KEY = `${APP_ID}:history`;
   const PANEL_ID = `${APP_ID}-panel`;
   const STYLE_ID = `${APP_ID}-style`;
-  const VERSION = "0.2.4";
+  const VERSION = "0.3.0";
 
   // BEGIN GENERATED OUTSOURCING COMPANIES
   // 来源及维护入口：data/outsourcing-companies.json；运行 npm run sync:outsourcing 更新。
@@ -558,7 +592,7 @@
     cachedPanel.innerHTML = `
       <div class="aj-header">
         <div>
-          <div class="aj-title">Boss 自动投递助手</div>
+          <div class="aj-title">Boss 自动投递助手增强版</div>
           <div class="aj-subtitle">v${VERSION} · ${runningText} · 今日已投 ${history.dailyCount}/150${quotaText}</div>
         </div>
         <button class="aj-icon-btn" data-action="toggle-collapse">${state.collapsed ? "展开" : "收起"}</button>
@@ -739,7 +773,7 @@
         `任务结束：扫描 ${state.scanned}，匹配 ${state.matched}，成功 ${state.applied}，跳过 ${state.skipped}，失败 ${state.failed}`,
       );
       notify(
-        "Boss 自动投递助手",
+        "Boss 自动投递助手增强版",
         `任务结束：成功 ${state.applied} 条`,
       );
       renderPanel();

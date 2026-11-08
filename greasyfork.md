@@ -1,28 +1,34 @@
-# Boss 直聘自动投递助手
+# Boss 直聘自动投递助手增强版（boss-assisant）
 
 一款专为 Boss 直聘职位列表页设计的 Tampermonkey 自动投递脚本。支持岗位名称、岗位详情、公司名称关键词、薪资下限及外包公司名单筛选。
 
-💻 **GitHub 仓库**：[muyuniao/boss-auto-apply](https://github.com/muyuniao/boss-auto-apply) *(欢迎点个 Star ⭐ 或提交 Issue)*
+💻 **GitHub 仓库**：[Nico-human/boss-assisant](https://github.com/Nico-human/boss-assisant)
+
+基于 [muyuniao/boss-auto-apply](https://github.com/muyuniao/boss-auto-apply) 开发，原作者 muyuniao，增强版由 Nico-human 维护。新增岗位、详情、公司关键词筛选及包含优先规则、薪资下限、外包过滤和配置自动保存。
+
+当前通过 [GitHub 安装增强版](https://raw.githubusercontent.com/Nico-human/boss-assisant/main/boss-auto-apply.user.js)；本文为后续发布 Greasy Fork 时使用的介绍文案。
 
 ---
 
 ### 🌟 核心设计与特性
 
 *   **⚡ 无感自动保存**：移除了多余的“保存”按钮。修改面板上任何关键词或配置，后台都会自动实时保存，打字不丢失焦点。
-*   **🛡️ 固定的防封安全间隔**：自动锁定在 **4秒 至 10秒 之间随机等待** 发起沟通，模拟真人手速以有效防范平台封号检测。
+*   **🛡️ 固定的投递间隔**：自动锁定在 **4秒 至 10秒 之间随机等待** 发起沟通，控制连续请求频率。
 *   **🔄 固定翻页/滚动**：处理完当前页后，固定等待 **3秒** 自动翻页或滚动加载。
-*   **🛑 每日安全阈值**：每日最大投递额度固定锁死在 **150 份**。一旦今天累计成功投递 150 份，脚本会自动安全停下并提示 `已达每日上限`，最大程度保护账号。
+*   **🛑 每日投递上限**：每日最大投递额度固定锁死在 **150 份**。一旦今天累计成功投递 150 份，脚本会自动安全停下并提示 `已达每日上限`。
 *   **⏳ BOSS 活跃度检测**：固定只投递 **两周内活跃** 的 BOSS。若 BOSS 活跃时间超过 14 天，自动跳过投递并提示 `boss活跃度未达标,已过滤`。
 *   **🎯 多维过滤规则**：岗位名称、职位描述和公司名称分别设置包含/排除关键词，包含优先；支持薪资下限（K/月，步长 1），按标价范围的最低值比较，不考虑多薪加成，不设薪资上限。
-*   **📋 一键排除外包公司**：内置 40 家公司的社区名单，支持简称和全称匹配。公司名称明确包含时，优先于公司排除及外包名单。名单来源与维护方式见 [GitHub 文档](https://github.com/muyuniao/boss-auto-apply#外包公司名单与维护)，可能有遗漏或误判。
+*   **📋 一键排除外包公司**：内置 40 家公司的社区名单，支持简称和全称匹配。公司名称明确包含时，优先于公司排除及外包名单。名单来源与维护方式见 [GitHub 文档](https://github.com/Nico-human/boss-assisant#外包公司名单与维护)，可能有遗漏或误判。
 
 ---
 
 ### 📖 使用说明
 
+安装增强版前请停用原版或旧 fork 脚本，避免同时运行；篡改猴中的旧版配置需重新设置。
+
 1. 确保已在浏览器中登录您的 Boss 直聘网页版。
 2. 打开 Boss 直聘网页版任意职位列表页（如：搜索结果页、推荐职位页）。
-3. 页面右下角将自动挂载「Boss 自动投递助手」控制面板。
+3. 页面右下角将自动挂载「Boss 自动投递助手增强版」控制面板。
 4. 按需要设置岗位名称、岗位详情、公司名称关键词（多个词仅用半角或全角逗号、分号分隔，换行不分隔），薪资下限及外包排除。关键词留空或薪资填 `0` 不限制；新增选项默认关闭。
 5. 点击面板上的 **「开始」** 按钮即可启动自动投递。
 
@@ -40,12 +46,14 @@
 
 ### 📄 开源协议
 
-本项目采用 [MIT License](https://github.com/muyuniao/boss-auto-apply/blob/main/LICENSE) 开源协议。
+本项目采用 [MIT License](https://github.com/Nico-human/boss-assisant/blob/main/LICENSE) 开源协议。
 
 ---
 
-### 📸 运行效果截图
+### 📸 原版界面参考
+
+以下截图来自原项目；增强版新增筛选项以实际面板为准。
 
 | 页面整体效果 | 操作控制面板 |
 | :---: | :---: |
-| ![页面整体效果](https://github.com/muyuniao/boss-auto-apply/raw/main/images/screenshot1.png) | ![操作控制面板](https://github.com/muyuniao/boss-auto-apply/raw/main/images/screenshot2.png) |
+| ![页面整体效果](https://github.com/Nico-human/boss-assisant/raw/main/images/screenshot1.png) | ![操作控制面板](https://github.com/Nico-human/boss-assisant/raw/main/images/screenshot2.png) |
